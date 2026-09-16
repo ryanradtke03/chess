@@ -1,3 +1,5 @@
+import { Board } from "./engine/board";
+
 export type PieceColor = "w" | "b";
 export type PieceRole = "K" | "Q" | "R" | "B" | "N" | "P";
 export type PieceSet = "alpha" | "cburnett" | "merdia";
@@ -31,3 +33,9 @@ export type BBKey =
   | "BR"
   | "BQ"
   | "BK";
+
+export interface MoveContext {
+  board: Board;
+  square: number;
+  color: PieceColor;
+}

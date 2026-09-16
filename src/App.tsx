@@ -15,7 +15,6 @@ function App() {
     if (selected === null) {
       // First click
       setSelected(i);
-      console.log(i, "→", squareToBit(i)); // clicking a2's render square (48) should print: 48 → 8
     } else {
       setGame((prev) => {
         const next = prev.clone();

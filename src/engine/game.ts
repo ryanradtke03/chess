@@ -1,5 +1,6 @@
 import type { PieceColor } from "../types";
 import { Board } from "./board";
+import { getLegalMoves } from "./movegen";
 
 export class Game {
   board: Board;
@@ -10,13 +11,17 @@ export class Game {
   }
 
   move(from: number, to: number): void {
-    // Validation
-    // is legal?
+    // Find legal moves and see if to is included
+    const legal = getLegalMoves({
+      board: this.board,
+      square: from,
+      color: this.toMove,
+    });
+    console.log(`legal moves: ${legal}`);
+    if (!legal.includes(to)) return;
 
-    // Make actual move
+    // Make and update turn
     this.board.makeMove(from, to);
-
-    // Update turn
     this.toMove = this.toMove === "w" ? "b" : "w";
   }
 

@@ -1,5 +1,7 @@
 // engine/board.ts
+
 import type { BBKey, PieceProps, U64 } from "../types";
+import { rankOf } from "../utils";
 
 export class Board {
   WP: U64 = 0n;
@@ -14,6 +16,7 @@ export class Board {
   BR: U64 = 0n;
   BQ: U64 = 0n;
   BK: U64 = 0n;
+  enPassantTarget: number | null = null;
 
   constructor(fen?: string) {
     this.setup(fen);
@@ -123,6 +126,8 @@ export class Board {
   }
 
   makeMove(from: number, to: number): void {
+    console.log(`Moving from: (${from}) to: (${to})`);
+
     const keys: BBKey[] = [
       "WP",
       "WN",
@@ -138,6 +143,33 @@ export class Board {
       "BK",
     ];
 
+    // en passant
+    const isPawn = this.pieceAt(from)?.role === "P";
+
+    // executed en passant?
+    if (isPawn && this.enPassantTarget === to) {
+      // Did we take black or white?
+      let r = rankOf(this.enPassantTarget);
+      if (r === 2) {
+        // Remove white
+        let enPassantMask = 1n << BigInt(to + 8);
+        this.WP &= ~enPassantMask;
+      } else {
+        // Remove black
+        let enPassantMask = 1n << BigInt(to - 8);
+        this.BP &= ~enPassantMask;
+      }
+    }
+
+    // created en passant?
+    if (isPawn && Math.abs(to - from) === 16) {
+      this.enPassantTarget = (from + to) / 2; // mid point
+      console.log(`Made en passant at: (${this.enPassantTarget})`);
+    } else {
+      this.enPassantTarget = null;
+    }
+
+    // rest of 'normal' behavior
     const fromMask = 1n << BigInt(from);
     const toMask = 1n << BigInt(to);
 
@@ -156,12 +188,6 @@ export class Board {
     }
   }
 
-  flipIndex(i: number): number {
-    const rank = Math.floor(i / 8);
-    const file = i % 8;
-    return (7 - rank) * 8 + file;
-  }
-
   clone(): Board {
     const b = new Board();
     b.WP = this.WP;
@@ -176,6 +202,7 @@ export class Board {
     b.BR = this.BR;
     b.BQ = this.BQ;
     b.BK = this.BK;
+    b.enPassantTarget = this.enPassantTarget;
     return b;
   }
 }
