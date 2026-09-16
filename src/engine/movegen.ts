@@ -1,7 +1,55 @@
-import type { MoveContext } from "../types";
+import type {
+  Delta,
+  MoveContext,
+  MoveFinderContext,
+  PieceColor,
+} from "../types";
 import { fileOf, rankOf, squareOf } from "../utils";
+import type { Board } from "./board";
 
-export function getLegalMoves({ board, square, color }: MoveContext): number[] {
+export function legalMovesFrom({
+  board,
+  square,
+  color,
+}: MoveContext): number[] {
+  const moves = movesFrom({ board, square, color });
+
+  // Return moves that dont leave king in check
+  return moves.filter((to) => {
+    const test = board.clone();
+    test.makeMove(square, to);
+    return !isKingInCheck(test, color);
+  });
+}
+
+function isKingInCheck(board: Board, color: PieceColor): boolean {
+  const kingSquare = board.kingAt(color);
+
+  const enemy: PieceColor = color === "w" ? "b" : "w";
+  return isSquareAttacked(board, kingSquare, enemy);
+}
+
+// Room for optimization here later
+function isSquareAttacked(
+  board: Board,
+  targetSquare: number,
+  enemy: PieceColor,
+): boolean {
+  for (let sq = 0; sq <= 63; sq++) {
+    let piece = board.pieceAt(sq);
+
+    if (!piece) continue;
+    if (piece.color !== enemy) continue;
+
+    const moves: number[] = movesFrom({ board, square: sq, color: enemy });
+
+    if (moves.includes(targetSquare)) return true;
+  }
+
+  return false;
+}
+
+function movesFrom({ board, square, color }: MoveContext): number[] {
   const piece = board.pieceAt(square);
 
   console.log(`Piece: ${piece?.role} at ${square}`);
@@ -27,6 +75,21 @@ export function getLegalMoves({ board, square, color }: MoveContext): number[] {
       return [];
   }
 }
+
+const DIAGONAL_DELTAS: Delta[] = [
+  [-1, -1],
+  [-1, 1],
+  [1, 1],
+  [1, -1],
+];
+const VERTICAL_DELTAS: Delta[] = [
+  [0, 1],
+  [0, -1],
+];
+const HORIZONTAL_DELTAS: Delta[] = [
+  [1, 0],
+  [-1, 0],
+];
 
 function pawnMoves({ board, square, color }: MoveContext): number[] {
   let moves: number[] = [];
@@ -74,28 +137,50 @@ function pawnMoves({ board, square, color }: MoveContext): number[] {
     }
   }
 
-  // Can en pessant?
-
   // Promotion?
 
   return moves;
 }
 
 function kingMoves({ board, square, color }: MoveContext): number[] {
-  return [];
-}
+  const KING_DELTAS: Delta[] = [
+    [-1, -1],
+    [-1, 0],
+    [-1, 1],
+    [0, -1],
+    [0, 1],
+    [1, -1],
+    [1, 0],
+    [1, 1],
+  ];
 
-function queenMoves({ board, square, color }: MoveContext): number[] {
-  return [];
-}
+  let moves: number[] = [];
 
-function bishopMoves({ board, square, color }: MoveContext): number[] {
-  return [];
+  const r = rankOf(square);
+  const f = fileOf(square);
+
+  for (const [df, dr] of KING_DELTAS) {
+    const nf = f + df;
+    const nr = r + dr;
+
+    if (nf < 0 || nf > 7 || nr < 0 || nr > 7) continue;
+
+    const target = squareOf(nr, nf);
+    const occupant = board.pieceAt(target);
+
+    if (occupant && occupant.color === color) continue; // cant move onto friendly piece
+
+    moves.push(target);
+  }
+
+  // Needs castleing logic, (cant castle is check)
+
+  return moves;
 }
 
 function knightMoves({ board, square, color }: MoveContext): number[] {
   console.log("Chekcing knight moves");
-  const KNIGHT_DELTAS = [
+  const KNIGHT_DELTAS: Delta[] = [
     [1, 2],
     [2, 1],
     [2, -1],
@@ -120,7 +205,7 @@ function knightMoves({ board, square, color }: MoveContext): number[] {
     const target = squareOf(nr, nf);
     const occupant = board.pieceAt(target);
 
-    if (occupant && occupant.color === color) continue; // cant move onto friendly pience
+    if (occupant && occupant.color === color) continue; // cant move onto friendly piece
 
     moves.push(target);
   }
@@ -128,6 +213,86 @@ function knightMoves({ board, square, color }: MoveContext): number[] {
   return moves;
 }
 
+function queenMoves({ board, square, color }: MoveContext): number[] {
+  let moves: number[] = [];
+  for (const delta of DIAGONAL_DELTAS) {
+    let found = findMovesOnDelta({ board, square, color, delta });
+    moves.push(...found);
+  }
+  for (const delta of HORIZONTAL_DELTAS) {
+    let found = findMovesOnDelta({ board, square, color, delta });
+    moves.push(...found);
+  }
+  for (const delta of VERTICAL_DELTAS) {
+    let found = findMovesOnDelta({ board, square, color, delta });
+    moves.push(...found);
+  }
+  return moves;
+}
+
+function bishopMoves({ board, square, color }: MoveContext): number[] {
+  let moves: number[] = [];
+  for (const delta of DIAGONAL_DELTAS) {
+    let found = findMovesOnDelta({ board, square, color, delta });
+    moves.push(...found);
+  }
+  return moves;
+}
+
 function rookMoves({ board, square, color }: MoveContext): number[] {
-  return [];
+  let moves: number[] = [];
+  for (const delta of HORIZONTAL_DELTAS) {
+    let found = findMovesOnDelta({ board, square, color, delta });
+    moves.push(...found);
+  }
+  for (const delta of VERTICAL_DELTAS) {
+    let found = findMovesOnDelta({ board, square, color, delta });
+    moves.push(...found);
+  }
+  return moves;
+}
+
+function findMovesOnDelta({
+  board,
+  square,
+  color,
+  delta,
+}: MoveFinderContext): number[] {
+  let moves: number[] = [];
+  const f = fileOf(square);
+  const r = rankOf(square);
+
+  let nf = f + 1 * delta[0];
+  let nr = r + 1 * delta[1];
+
+  console.log(`findMoves start: square=${square} delta=[${delta}]`);
+
+  while (nf >= 0 && nf <= 7 && nr >= 0 && nr <= 7) {
+    const target = squareOf(nr, nf);
+    const occupant = board.pieceAt(target);
+    console.log(
+      `  checking target=${target} (f=${nf},r=${nr}) occupant=`,
+      occupant,
+    );
+
+    if (occupant && occupant.color === color) {
+      console.log(`  friendly at ${target} → stop`);
+      break;
+    }
+
+    moves.push(target);
+    console.log(`  pushed ${target}`);
+
+    if (occupant && occupant.color !== color) {
+      console.log(`  captured enemy at ${target} → stop`);
+      break;
+    }
+
+    nf += delta[0];
+    nr += delta[1];
+  }
+
+  console.log(`findMoves done: [${moves}]`);
+
+  return moves;
 }

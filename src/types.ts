@@ -39,3 +39,9 @@ export interface MoveContext {
   square: number;
   color: PieceColor;
 }
+
+export type Delta = [number, number]; // [fileDelta, rankDelta]
+
+export interface MoveFinderContext extends MoveContext {
+  delta: Delta;
+}

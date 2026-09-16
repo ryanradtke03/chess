@@ -1,6 +1,6 @@
 // engine/board.ts
 
-import type { BBKey, PieceProps, U64 } from "../types";
+import type { BBKey, PieceColor, PieceProps, U64 } from "../types";
 import { rankOf } from "../utils";
 
 export class Board {
@@ -89,6 +89,14 @@ export class Board {
   clearBoard() {
     this.WP = this.WN = this.WB = this.WR = this.WQ = this.WK = 0n;
     this.BP = this.BN = this.BB = this.BR = this.BQ = this.BK = 0n;
+  }
+
+  kingAt(color: PieceColor): number {
+    const bb = color === "w" ? this.WK : this.BK;
+
+    let sq = 0;
+    while ((bb & (1n << BigInt(sq))) === 0n) sq++; // move the mask
+    return sq;
   }
 
   // what piece (if any) is on square 0–63 (bit index, a1 = 0)
