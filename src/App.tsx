@@ -4,7 +4,7 @@ import { Game } from "./engine/game";
 import { FENS } from "./fens";
 
 function App() {
-  const [game, setGame] = useState(() => new Game(FENS[7]));
+  const [game, setGame] = useState(() => new Game(FENS[8]));
   const [selected, setSelected] = useState<number | null>(null);
 
   function squareToBit(i: number): number {

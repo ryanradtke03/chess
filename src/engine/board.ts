@@ -17,6 +17,10 @@ export class Board {
   BQ: U64 = 0n;
   BK: U64 = 0n;
   enPassantTarget: number | null = null;
+  whiteKingSide: boolean = true;
+  whiteQueenSide: boolean = true;
+  blackKingSide: boolean = true;
+  blackQueenSide: boolean = true;
 
   constructor(fen?: string) {
     this.setup(fen);
@@ -133,6 +137,41 @@ export class Board {
     return out;
   }
 
+  private updateCastleRights(sq: number): void {
+    switch (sq) {
+      case 4:
+        this.whiteKingSide = false;
+        this.whiteQueenSide = false;
+        console.log(
+          "castle: white king moved → lost both white rights (K + Q)",
+        );
+        break; // e1 (king)
+      case 0:
+        this.whiteQueenSide = false;
+        console.log("castle: a1 touched → lost white queenside (Q)");
+        break; // a1 rook
+      case 7:
+        this.whiteKingSide = false;
+        console.log("castle: h1 touched → lost white kingside (K)");
+        break; // h1 rook
+      case 60:
+        this.blackKingSide = false;
+        this.blackQueenSide = false;
+        console.log(
+          "castle: black king moved → lost both black rights (k + q)",
+        );
+        break; // e8 (king)
+      case 56:
+        this.blackQueenSide = false;
+        console.log("castle: a8 touched → lost black queenside (q)");
+        break; // a8 rook
+      case 63:
+        this.blackKingSide = false;
+        console.log("castle: h8 touched → lost black kingside (k)");
+        break; // h8 rook
+    }
+  }
+
   makeMove(from: number, to: number): void {
     console.log(`Moving from: (${from}) to: (${to})`);
 
@@ -151,9 +190,11 @@ export class Board {
       "BK",
     ];
 
-    // en passant
-    const isPawn = this.pieceAt(from)?.role === "P";
+    const piece: PieceProps | null = this.pieceAt(from);
+    const isPawn = piece?.role === "P";
+    const isKing = piece?.role === "K";
 
+    // en passant
     // executed en passant?
     if (isPawn && this.enPassantTarget === to) {
       // Did we take black or white?
@@ -174,7 +215,30 @@ export class Board {
       this.enPassantTarget = (from + to) / 2; // mid point
       console.log(`Made en passant at: (${this.enPassantTarget})`);
     } else {
-      this.enPassantTarget = null;
+      this.enPassantTarget = null; //expires after one turn
+    }
+
+    // Check if move breaks castle
+    console.log(`Updating Castle rights from: ${from} to: ${to}`);
+    this.updateCastleRights(from);
+    this.updateCastleRights(to);
+
+    // Check if castle is being executed
+    // Only need to move rook at king move will be executed in the 'normal' section
+
+    if (isKing && Math.abs(to - from) === 2) {
+      const CASTLE_ROOK: Record<number, [number, number]> = {
+        2: [0, 3], // white queenside: a1 → d1
+        6: [7, 5], // white kingside:  h1 → f1
+        58: [56, 59], // black queenside: a8 → d8
+        62: [63, 61], // black kingside:  h8 → f8
+      };
+
+      // king moved 2
+      const [rookFrom, rookTo] = CASTLE_ROOK[to];
+      const rookKey: BBKey = piece.color === "w" ? "WR" : "BR";
+      this[rookKey] &= ~(1n << BigInt(rookFrom)); // lift rook
+      this[rookKey] |= 1n << BigInt(rookTo); // drop rook
     }
 
     // rest of 'normal' behavior
@@ -211,6 +275,10 @@ export class Board {
     b.BQ = this.BQ;
     b.BK = this.BK;
     b.enPassantTarget = this.enPassantTarget;
+    b.whiteKingSide = this.whiteKingSide;
+    b.whiteQueenSide = this.whiteQueenSide;
+    b.blackKingSide = this.blackKingSide;
+    b.blackQueenSide = this.blackQueenSide;
     return b;
   }
 }

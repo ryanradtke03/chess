@@ -12,21 +12,33 @@ export function legalMovesFrom({
   square,
   color,
 }: MoveContext): number[] {
+  const piece = board.pieceAt(square);
   const moves = movesFrom({ board, square, color });
 
   // Return moves that dont leave king in check
-  return moves.filter((to) => {
+  let legal: number[] = moves.filter((to) => {
     const test = board.clone();
     test.makeMove(square, to);
     return !isKingInCheck(test, color);
   });
+
+  // Check for castle
+  if (piece?.role === "K") {
+    legal.push(...castlingMoves(board, color));
+  }
+
+  return legal;
 }
 
 function isKingInCheck(board: Board, color: PieceColor): boolean {
   const kingSquare = board.kingAt(color);
 
-  const enemy: PieceColor = color === "w" ? "b" : "w";
+  const enemy: PieceColor = enemyOf(color);
   return isSquareAttacked(board, kingSquare, enemy);
+}
+
+function enemyOf(color: PieceColor): PieceColor {
+  return color === "w" ? "b" : "w";
 }
 
 // Room for optimization here later
@@ -51,11 +63,12 @@ function isSquareAttacked(
 
 function movesFrom({ board, square, color }: MoveContext): number[] {
   const piece = board.pieceAt(square);
+  let moves: number[] = [];
 
   console.log(`Piece: ${piece?.role} at ${square}`);
 
-  if (!piece) return [];
-  if (piece.color !== color) return [];
+  if (!piece) return moves;
+  if (piece.color !== color) return moves;
 
   switch (piece.role) {
     case "P":
@@ -173,9 +186,77 @@ function kingMoves({ board, square, color }: MoveContext): number[] {
     moves.push(target);
   }
 
-  // Needs castleing logic, (cant castle is check)
+  return moves;
+}
+
+function castlingMoves(board: Board, color: PieceColor): number[] {
+  let moves: number[] = [];
+  let enemy: PieceColor = enemyOf(color);
+
+  // Cant castle out of check
+  if (isKingInCheck(board, color)) return [];
+
+  let searchSpace: number[] = [];
+  if (color === "w") {
+    searchSpace = [5, 6];
+    if (
+      board.whiteKingSide &&
+      empty(board, searchSpace) &&
+      notAttacked(board, searchSpace, enemy)
+    ) {
+      moves.push(6);
+    }
+
+    searchSpace = [1, 2, 3];
+    if (
+      board.whiteQueenSide &&
+      empty(board, searchSpace) &&
+      notAttacked(board, [2, 3], enemy)
+    ) {
+      moves.push(2);
+    }
+  } else {
+    searchSpace = [61, 62];
+    if (
+      board.blackKingSide &&
+      empty(board, searchSpace) &&
+      notAttacked(board, searchSpace, enemy)
+    ) {
+      moves.push(62);
+    }
+
+    searchSpace = [58, 59];
+    if (
+      board.blackQueenSide &&
+      empty(board, searchSpace) &&
+      notAttacked(board, searchSpace, enemy)
+    ) {
+      moves.push(58);
+    }
+  }
 
   return moves;
+}
+
+function empty(board: Board, targets: number[]): boolean {
+  // For each target, if there is a piece then its not empty
+  for (const target of targets) {
+    if (board.pieceAt(target)) return false;
+  }
+
+  return true;
+}
+
+function notAttacked(
+  board: Board,
+  targets: number[],
+  enemy: PieceColor,
+): boolean {
+  for (const target of targets) {
+    if (isSquareAttacked(board, target, enemy)) return false;
+  }
+
+  return true;
 }
 
 function knightMoves({ board, square, color }: MoveContext): number[] {
