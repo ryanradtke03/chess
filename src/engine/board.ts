@@ -122,6 +122,46 @@ export class Board {
     return out;
   }
 
+  makeMove(from: number, to: number): void {
+    const keys: BBKey[] = [
+      "WP",
+      "WN",
+      "WB",
+      "WR",
+      "WQ",
+      "WK",
+      "BP",
+      "BN",
+      "BB",
+      "BR",
+      "BQ",
+      "BK",
+    ];
+
+    const fromMask = 1n << BigInt(from);
+    const toMask = 1n << BigInt(to);
+
+    // Remove piece on to square
+    for (const key of keys) {
+      this[key] &= ~toMask;
+    }
+
+    // Remove pience from from square and add to to
+    for (const key of keys) {
+      if (this[key] & fromMask) {
+        this[key] &= ~fromMask; // clear orgin
+        this[key] |= toMask; // set destination bit
+        break;
+      }
+    }
+  }
+
+  flipIndex(i: number): number {
+    const rank = Math.floor(i / 8);
+    const file = i % 8;
+    return (7 - rank) * 8 + file;
+  }
+
   clone(): Board {
     const b = new Board();
     b.WP = this.WP;

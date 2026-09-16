@@ -7,12 +7,21 @@ function App() {
   const [game, setGame] = useState(() => new Game(FENS[7]));
   const [selected, setSelected] = useState<number | null>(null);
 
+  function squareToBit(i: number): number {
+    return (7 - Math.floor(i / 8)) * 8 + (i % 8);
+  }
+
   function handleSquareClick(i: number) {
-    if (selected == null) {
+    if (selected === null) {
       // First click
       setSelected(i);
+      console.log(i, "→", squareToBit(i)); // clicking a2's render square (48) should print: 48 → 8
     } else {
-      // Second click
+      setGame((prev) => {
+        const next = prev.clone();
+        next.move(squareToBit(selected), squareToBit(i));
+        return next;
+      });
       setSelected(null);
     }
   }
