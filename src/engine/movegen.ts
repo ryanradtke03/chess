@@ -28,7 +28,7 @@ export function legalMovesFrom({ board, square, color }: MoveContext): Move[] {
   return legal;
 }
 
-function allLegalMoves(board: Board, color: PieceColor): Move[] {
+export function allLegalMoves(board: Board, color: PieceColor): Move[] {
   let allMoves: Move[] = [];
   for (let sq = 0; sq <= 63; sq++) {
     let piece = board.pieceAt(sq);
@@ -43,7 +43,7 @@ function allLegalMoves(board: Board, color: PieceColor): Move[] {
   return allMoves;
 }
 
-function isKingInCheck(board: Board, color: PieceColor): boolean {
+export function isKingInCheck(board: Board, color: PieceColor): boolean {
   const kingSquare = board.kingAt(color);
 
   const enemy: PieceColor = enemyOf(color);

@@ -17,6 +17,7 @@ export interface BoardProps {
   squares: (PieceProps | null)[];
   onSquareClick: (index: number) => void;
   selected?: number | null;
+  targets: number[];
 }
 
 export interface Move {
@@ -51,3 +52,5 @@ export type Delta = [number, number]; // [fileDelta, rankDelta]
 export interface MoveFinderContext extends MoveContext {
   delta: Delta;
 }
+
+export type GameStatus = "ongoing" | "checkmate" | "stalemate";

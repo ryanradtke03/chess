@@ -1,11 +1,12 @@
-import type { Move, PieceColor } from "../types";
 import { log } from "../log";
+import type { GameStatus, Move, PieceColor } from "../types";
 import { Board } from "./board";
-import { legalMovesFrom } from "./movegen";
+import { allLegalMoves, isKingInCheck, legalMovesFrom } from "./movegen";
 
 export class Game {
   board: Board;
   toMove: PieceColor = "w";
+  status: GameStatus = "ongoing";
 
   constructor(fen?: string) {
     this.board = new Board(fen);
@@ -14,7 +15,7 @@ export class Game {
   move({ from, to, promotion }: Move): void {
     // Find legal moves and see if to is included
     log.debug("Game.move from/to:", from, to);
-    const moves = legalMovesFrom({
+    let moves = legalMovesFrom({
       board: this.board,
       square: from,
       color: this.toMove,
@@ -32,12 +33,23 @@ export class Game {
     // Make and update turn
     this.board.makeMove({ from, to, promotion });
     this.toMove = this.toMove === "w" ? "b" : "w";
+
+    // Check for game stauts
+    moves = allLegalMoves(this.board, this.toMove);
+    if (moves.length === 0) {
+      this.status = isKingInCheck(this.board, this.toMove)
+        ? "checkmate"
+        : "stalemate";
+    } else {
+      this.status = "ongoing";
+    }
   }
 
   clone(): Game {
     const g = new Game();
     g.board = this.board.clone();
     g.toMove = this.toMove;
+    g.status = this.status;
     return g;
   }
 }

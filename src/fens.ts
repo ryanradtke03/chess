@@ -18,4 +18,6 @@ export const FENS: string[] = [
   // --- EXTRA TEST POSITIONS ---
   "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1", // 13: white castling both ways
   "4k3/4r3/8/8/8/8/8/4K3 w - - 0 1", // 14: white king in check (must escape)
+  "4k3/Q7/4K3/8/8/8/8/8", // 15 (checkamge a7 -> e7)
+  "7k/2Q5/6K1/8/8/8/8/8", // 16 (stalemate) c7 -> f7
 ];

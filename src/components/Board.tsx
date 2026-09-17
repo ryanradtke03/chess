@@ -8,6 +8,7 @@ function Board({
   lightColor = "#f0d9b5",
   darkColor = "#b58863",
   size = 512,
+  targets = [],
 }: BoardProps) {
   return (
     <div
@@ -26,9 +27,12 @@ function Board({
           <div
             key={i}
             onClick={() => onSquareClick(i)}
-            className={`aspect-square ${isLight ? "bg-[var(--light-sq)]" : "bg-[var(--dark-sq)]"} ${i === selected ? "ring-4 ring-yellow-400 ring-inset" : ""}`}
+            className={`relative aspect-square ${isLight ? "bg-[var(--light-sq)]" : "bg-[var(--dark-sq)]"} ${i === selected ? "ring-4 ring-yellow-400 ring-inset" : ""}`}
           >
             {piece && <Piece color={piece.color} role={piece.role} />}
+            {targets.includes(i) && (
+              <span className="pointer-events-none absolute inset-0 m-auto h-1/3 w-1/3 rounded-full bg-black/30" />
+            )}
           </div>
         );
       })}

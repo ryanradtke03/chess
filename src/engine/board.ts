@@ -49,6 +49,7 @@ export class Board {
     this.BK = 0x1000000000000000n;
   }
 
+  // TODO, other fields, such as castling rules and what not
   loadFen(fen: string): void {
     const FEN_TO_BB: Record<string, BBKey> = {
       P: "WP",
