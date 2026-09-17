@@ -142,39 +142,27 @@ export class Board {
       case 4:
         this.whiteKingSide = false;
         this.whiteQueenSide = false;
-        console.log(
-          "castle: white king moved → lost both white rights (K + Q)",
-        );
         break; // e1 (king)
       case 0:
         this.whiteQueenSide = false;
-        console.log("castle: a1 touched → lost white queenside (Q)");
         break; // a1 rook
       case 7:
         this.whiteKingSide = false;
-        console.log("castle: h1 touched → lost white kingside (K)");
         break; // h1 rook
       case 60:
         this.blackKingSide = false;
         this.blackQueenSide = false;
-        console.log(
-          "castle: black king moved → lost both black rights (k + q)",
-        );
         break; // e8 (king)
       case 56:
         this.blackQueenSide = false;
-        console.log("castle: a8 touched → lost black queenside (q)");
         break; // a8 rook
       case 63:
         this.blackKingSide = false;
-        console.log("castle: h8 touched → lost black kingside (k)");
         break; // h8 rook
     }
   }
 
   makeMove({ from, to, promotion }: Move): void {
-    console.log(`Moving from: (${from}) to: (${to})`);
-
     const keys: BBKey[] = [
       "WP",
       "WN",
@@ -213,13 +201,11 @@ export class Board {
     // created en passant?
     if (isPawn && Math.abs(to - from) === 16) {
       this.enPassantTarget = (from + to) / 2; // mid point
-      console.log(`Made en passant at: (${this.enPassantTarget})`);
     } else {
       this.enPassantTarget = null; //expires after one turn
     }
 
     // Check if move breaks castle
-    console.log(`Updating Castle rights from: ${from} to: ${to}`);
     this.updateCastleRights(from);
     this.updateCastleRights(to);
 

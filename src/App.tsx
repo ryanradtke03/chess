@@ -62,7 +62,7 @@ function App() {
       <button
         onClick={() => {
           console.time("perft");
-          console.log("perft(2):", perft(new ChessBoard(), "w", 3));
+          console.log("perft(3):", perft(new ChessBoard(), "w", 3));
           console.timeEnd("perft");
         }}
       >

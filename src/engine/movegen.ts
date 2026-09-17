@@ -10,13 +10,8 @@ import { fileOf, rankOf, squareOf } from "../utils";
 import type { Board } from "./board";
 
 export function legalMovesFrom({ board, square, color }: MoveContext): Move[] {
-  console.log("legalMovesFrom pawn:", {
-    square,
-    epTarget: board.enPassantTarget,
-  });
   const piece = board.pieceAt(square);
   const moves = movesFrom({ board, square, color });
-  console.log("  pseudo:", moves);
 
   // Return moves that dont leave king in check
   let legal: Move[] = moves.filter((move) => {
@@ -99,8 +94,6 @@ function movesFrom({ board, square, color }: MoveContext): Move[] {
   const piece = board.pieceAt(square);
   let moves: Move[] = [];
 
-  console.log(`Piece: ${piece?.role} at ${square}`);
-
   if (!piece) return moves;
   if (piece.color !== color) return moves;
 
@@ -118,7 +111,7 @@ function movesFrom({ board, square, color }: MoveContext): Move[] {
     case "R":
       return rookMoves({ board, square, color });
     default:
-      console.error("Invalid pience to move");
+      console.error("Invalid piece to move");
       return [];
   }
 }
@@ -181,12 +174,7 @@ function pawnMoves({ board, square, color }: MoveContext): Move[] {
     if (cf < 0 || cf > 7) continue;
 
     const captureTarget = squareOf(r + multplier, cf);
-    console.log(`Look at target: (${captureTarget})`);
     let occupied = board.pieceAt(captureTarget);
-    console.log(`Is occupied? ${occupied}`);
-    console.log(
-      `CaptureTarger: (${captureTarget})    Board.enPassant: (${board.enPassantTarget})`,
-    );
     if (
       captureTarget === board.enPassantTarget ||
       (occupied && occupied.color !== color)
@@ -309,7 +297,6 @@ function notAttacked(
 }
 
 function knightMoves({ board, square, color }: MoveContext): Move[] {
-  console.log("Chekcing knight moves");
   const KNIGHT_DELTAS: Delta[] = [
     [1, 2],
     [2, 1],
@@ -395,34 +382,23 @@ function findMovesOnDelta({
   let nf = f + 1 * delta[0];
   let nr = r + 1 * delta[1];
 
-  console.log(`findMoves start: square=${square} delta=[${delta}]`);
-
   while (nf >= 0 && nf <= 7 && nr >= 0 && nr <= 7) {
     const target = squareOf(nr, nf);
     const occupant = board.pieceAt(target);
-    console.log(
-      `  checking target=${target} (f=${nf},r=${nr}) occupant=`,
-      occupant,
-    );
 
     if (occupant && occupant.color === color) {
-      console.log(`  friendly at ${target} → stop`);
       break;
     }
 
     moves.push({ from: square, to: target });
-    console.log(`  pushed ${target}`);
 
     if (occupant && occupant.color !== color) {
-      console.log(`  captured enemy at ${target} → stop`);
       break;
     }
 
     nf += delta[0];
     nr += delta[1];
   }
-
-  console.log(`findMoves done: [${moves}]`);
 
   return moves;
 }
