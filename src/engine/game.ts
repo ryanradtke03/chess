@@ -1,48 +1,64 @@
-import { log } from "../log";
 import type { GameStatus, Move, PieceColor } from "../types";
+import { log } from "../utils/log";
 import { Board } from "./board";
-import { allLegalMoves, isKingInCheck, legalMovesFrom } from "./movegen";
+import * as movegen from "./movegen";
 
 export class Game {
   board: Board;
   toMove: PieceColor = "w";
   status: GameStatus = "ongoing";
 
-  constructor(fen?: string) {
-    this.board = new Board(fen);
-  }
-
+  // core game logic ------------
   move({ from, to, promotion }: Move): void {
-    // Find legal moves and see if to is included
     log.debug("Game.move from/to:", from, to);
-    let moves = legalMovesFrom({
+
+    // only move is game is on going
+    if (this.status !== "ongoing") return;
+
+    // find legal moves
+    let moves = movegen.legalMovesFrom({
       board: this.board,
       square: from,
       color: this.toMove,
     });
-    log.debug("MOVE attempt:", { from, to, promotion, toMove: this.toMove });
 
+    log.debug("MOVE attempt:", { from, to, promotion, toMove: this.toMove });
     log.debug("  legal:", moves);
 
+    // find if our targeted move is a legal move
     const match = moves.some(
       (m) => m.from === from && m.to === to && m.promotion === promotion,
     );
+
     log.debug("  matched?", match);
+
+    // return if move is not legal
     if (!match) return;
 
-    // Make and update turn
+    // make the move
     this.board.makeMove({ from, to, promotion });
+
+    // change turns
     this.toMove = this.toMove === "w" ? "b" : "w";
 
-    // Check for game stauts
-    moves = allLegalMoves(this.board, this.toMove);
+    // check / update game status
+    // find ALL legal moves
+    moves = movegen.allLegalMoves(this.board, this.toMove);
+
+    // if none left
     if (moves.length === 0) {
-      this.status = isKingInCheck(this.board, this.toMove)
+      // determine if game ended in checkmate or stalemate
+      this.status = movegen.isKingInCheck(this.board, this.toMove)
         ? "checkmate"
         : "stalemate";
     } else {
+      // else options to play; continue game
       this.status = "ongoing";
     }
+  }
+
+  constructor(fen?: string) {
+    this.board = new Board(fen);
   }
 
   clone(): Game {

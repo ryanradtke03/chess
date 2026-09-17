@@ -1,39 +1,80 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Board from "./components/Board";
 import PromotionDialog from "./components/PromotionDialog";
-import { Board as ChessBoard } from "./engine/board";
+import type { Board as ChessBoard } from "./engine/board";
 import { Game } from "./engine/game";
-import { legalMovesFrom, perft } from "./engine/movegen";
-import type { PieceColor, PieceRole } from "./types";
+import * as movegen from "./engine/movegen";
+import type { Move, PieceColor, PieceRole } from "./types";
+import { squareToBit } from "./utils/utils";
+
+import moveSoundUrl from "./assets/public_sound_standard_Move.mp3";
+const moveSound = new Audio(moveSoundUrl);
+
+function playMoveSound() {
+  moveSound.currentTime = 0; // rewind so rapid moves always fire
+  moveSound.play().catch(() => {}); // swallow autoplay-policy errors
+}
 
 function App() {
+  // holds a game
   const [game, setGame] = useState(() => new Game()); //FENS[12]
+
+  // which square selected
   const [selected, setSelected] = useState<number | null>(null);
+
+  // valid move positions
+  const [targets, setTargets] = useState<number[]>([]);
+
+  // promotion choice pending
+
   const [pending, setPending] = useState<{ from: number; to: number } | null>(
     null,
   );
-  const [targets, setTargets] = useState<number[]>([]);
+  const promoColor: PieceColor = pending && pending.to >= 56 ? "w" : "b";
 
-  function squareToBit(i: number): number {
-    return (7 - Math.floor(i / 8)) * 8 + (i % 8);
-  }
+  useEffect(() => {
+    if (game.status !== "ongoing") return;
+    if (game.toMove !== "b") return;
 
+    const id = setTimeout(() => {
+      const move = pickRandomMove(game.board, "b");
+      if (move) {
+        // make the move
+        setGame((prev) => {
+          const next = prev.clone();
+          next.move(move);
+          playMoveSound();
+          return next;
+        });
+      }
+    }, 832);
+    return () => clearTimeout(id);
+  }, [game.toMove, game.status]);
+
+  // main -----------------------------------
   function handleSquareClick(i: number) {
+    // first click
     if (selected === null) {
-      // First click
       const from = squareToBit(i);
       const piece = game.board.pieceAt(from);
-      if (!piece || piece.color !== game.toMove) return; // only select your own piece
+
+      // only select your own piece
+      if (!piece || piece.color !== game.toMove) return;
 
       setSelected(i);
-      const moves = legalMovesFrom({
+
+      // find moves from piece
+      const moves = movegen.legalMovesFrom({
         board: game.board,
         square: from,
         color: game.toMove,
       });
-      setTargets(moves.map((m) => squareToBit(m.to))); // bit → render index
+
+      // update targets to valid moves
+      setTargets(moves.map((m) => squareToBit(m.to)));
       return;
     } else {
+      // second click
       const from = squareToBit(selected);
       const to = squareToBit(i);
       const piece = game.board.pieceAt(from);
@@ -46,12 +87,15 @@ function App() {
         return;
       }
 
-      // normal move
+      // make the move
       setGame((prev) => {
         const next = prev.clone();
         next.move({ from: squareToBit(selected), to: squareToBit(i) });
+        playMoveSound();
         return next;
       });
+
+      // reset
       setSelected(null);
       setTargets([]);
     }
@@ -59,15 +103,24 @@ function App() {
 
   function choosePromotion(role: PieceRole) {
     if (!pending) return;
+
+    // make move with promotion flag
     setGame((prev) => {
       const next = prev.clone();
       next.move({ from: pending.from, to: pending.to, promotion: role });
+      playMoveSound();
       return next;
     });
+
+    // reset
     setPending(null);
   }
 
-  const promoColor: PieceColor = pending && pending.to >= 56 ? "w" : "b";
+  function pickRandomMove(board: ChessBoard, color: PieceColor): Move | null {
+    const moves = movegen.allLegalMoves(board, color);
+    if (moves.length === 0) return null;
+    return moves[Math.floor(Math.random() * moves.length)];
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-neutral-800 text-neutral-100">
@@ -111,6 +164,7 @@ function App() {
                 className="mt-3 block w-full rounded bg-neutral-800 px-4 py-2 text-sm font-medium text-white"
                 onClick={() => {
                   setGame(new Game());
+                  playMoveSound();
                   setSelected(null);
                   setPending(null);
                 }}
@@ -123,16 +177,6 @@ function App() {
       </div>
 
       {/* dev only */}
-      <button
-        className="text-sm text-neutral-400 underline"
-        onClick={() => {
-          console.time("perft");
-          console.log("perft(3):", perft(new ChessBoard(), "w", 3));
-          console.timeEnd("perft");
-        }}
-      >
-        run perft
-      </button>
     </div>
   );
 }

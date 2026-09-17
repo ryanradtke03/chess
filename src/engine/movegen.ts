@@ -6,8 +6,47 @@ import type {
   PieceColor,
   PieceRole,
 } from "../types";
-import { fileOf, rankOf, squareOf } from "../utils";
+import { fileOf, rankOf, squareOf } from "../utils/utils";
 import type { Board } from "./board";
+
+// deltas ----------------
+
+const KING_DELTAS: Delta[] = [
+  [-1, -1],
+  [-1, 0],
+  [-1, 1],
+  [0, -1],
+  [0, 1],
+  [1, -1],
+  [1, 0],
+  [1, 1],
+];
+const KNIGHT_DELTAS: Delta[] = [
+  [1, 2],
+  [2, 1],
+  [2, -1],
+  [1, -2],
+  [-1, -2],
+  [-2, -1],
+  [-2, 1],
+  [-1, 2],
+];
+const DIAGONAL_DELTAS: Delta[] = [
+  [-1, -1],
+  [-1, 1],
+  [1, 1],
+  [1, -1],
+];
+const VERTICAL_DELTAS: Delta[] = [
+  [0, 1],
+  [0, -1],
+];
+const HORIZONTAL_DELTAS: Delta[] = [
+  [1, 0],
+  [-1, 0],
+];
+
+// public functions -----------------------
 
 export function legalMovesFrom({ board, square, color }: MoveContext): Move[] {
   const piece = board.pieceAt(square);
@@ -66,71 +105,9 @@ export function perft(board: Board, color: PieceColor, depth: number): number {
   return nodes;
 }
 
-function enemyOf(color: PieceColor): PieceColor {
-  return color === "w" ? "b" : "w";
-}
+//  pieces       -----------------------------
 
-// Room for optimization here later
-function isSquareAttacked(
-  board: Board,
-  targetSquare: number,
-  enemy: PieceColor,
-): boolean {
-  for (let sq = 0; sq <= 63; sq++) {
-    let piece = board.pieceAt(sq);
-
-    if (!piece) continue;
-    if (piece.color !== enemy) continue;
-
-    const moves: Move[] = movesFrom({ board, square: sq, color: enemy });
-
-    if (moves.some((m) => m.to === targetSquare)) return true;
-  }
-
-  return false;
-}
-
-function movesFrom({ board, square, color }: MoveContext): Move[] {
-  const piece = board.pieceAt(square);
-  let moves: Move[] = [];
-
-  if (!piece) return moves;
-  if (piece.color !== color) return moves;
-
-  switch (piece.role) {
-    case "P":
-      return pawnMoves({ board, square, color });
-    case "K":
-      return kingMoves({ board, square, color });
-    case "Q":
-      return queenMoves({ board, square, color });
-    case "B":
-      return bishopMoves({ board, square, color });
-    case "N":
-      return knightMoves({ board, square, color });
-    case "R":
-      return rookMoves({ board, square, color });
-    default:
-      console.error("Invalid piece to move");
-      return [];
-  }
-}
-
-const DIAGONAL_DELTAS: Delta[] = [
-  [-1, -1],
-  [-1, 1],
-  [1, 1],
-  [1, -1],
-];
-const VERTICAL_DELTAS: Delta[] = [
-  [0, 1],
-  [0, -1],
-];
-const HORIZONTAL_DELTAS: Delta[] = [
-  [1, 0],
-  [-1, 0],
-];
-
+// special pieces -----------------------------
 function pawnMoves({ board, square, color }: MoveContext): Move[] {
   let moves: Move[] = [];
   const multplier = color === "w" ? 1 : -1;
@@ -193,17 +170,6 @@ function pawnMoves({ board, square, color }: MoveContext): Move[] {
 }
 
 function kingMoves({ board, square, color }: MoveContext): Move[] {
-  const KING_DELTAS: Delta[] = [
-    [-1, -1],
-    [-1, 0],
-    [-1, 1],
-    [0, -1],
-    [0, 1],
-    [1, -1],
-    [1, 0],
-    [1, 1],
-  ];
-
   let moves: Move[] = [];
 
   const r = rankOf(square);
@@ -226,88 +192,9 @@ function kingMoves({ board, square, color }: MoveContext): Move[] {
   return moves;
 }
 
-function castlingMoves(board: Board, color: PieceColor): Move[] {
-  let moves: Move[] = [];
-  let enemy: PieceColor = enemyOf(color);
-
-  // Cant castle out of check
-  if (isKingInCheck(board, color)) return [];
-
-  let searchSpace: number[] = [];
-  if (color === "w") {
-    searchSpace = [5, 6];
-    if (
-      board.whiteKingSide &&
-      empty(board, searchSpace) &&
-      notAttacked(board, searchSpace, enemy)
-    ) {
-      moves.push({ from: 4, to: 6 });
-    }
-
-    searchSpace = [1, 2, 3];
-    if (
-      board.whiteQueenSide &&
-      empty(board, searchSpace) &&
-      notAttacked(board, [2, 3], enemy)
-    ) {
-      moves.push({ from: 4, to: 2 });
-    }
-  } else {
-    searchSpace = [61, 62];
-    if (
-      board.blackKingSide &&
-      empty(board, searchSpace) &&
-      notAttacked(board, searchSpace, enemy)
-    ) {
-      moves.push({ from: 60, to: 62 });
-    }
-
-    searchSpace = [58, 59];
-    if (
-      board.blackQueenSide &&
-      empty(board, searchSpace) &&
-      notAttacked(board, searchSpace, enemy)
-    ) {
-      moves.push({ from: 60, to: 58 });
-    }
-  }
-
-  return moves;
-}
-
-function empty(board: Board, targets: number[]): boolean {
-  // For each target, if there is a piece then its not empty
-  for (const target of targets) {
-    if (board.pieceAt(target)) return false;
-  }
-
-  return true;
-}
-
-function notAttacked(
-  board: Board,
-  targets: number[],
-  enemy: PieceColor,
-): boolean {
-  for (const target of targets) {
-    if (isSquareAttacked(board, target, enemy)) return false;
-  }
-
-  return true;
-}
+// 'normal' pieces -----------------------------
 
 function knightMoves({ board, square, color }: MoveContext): Move[] {
-  const KNIGHT_DELTAS: Delta[] = [
-    [1, 2],
-    [2, 1],
-    [2, -1],
-    [1, -2],
-    [-1, -2],
-    [-2, -1],
-    [-2, 1],
-    [-1, 2],
-  ];
-
   const r = rankOf(square);
   const f = fileOf(square);
 
@@ -369,6 +256,34 @@ function rookMoves({ board, square, color }: MoveContext): Move[] {
   return moves;
 }
 
+// aux helpers ------------------------------
+
+function movesFrom({ board, square, color }: MoveContext): Move[] {
+  const piece = board.pieceAt(square);
+  let moves: Move[] = [];
+
+  if (!piece) return moves;
+  if (piece.color !== color) return moves;
+
+  switch (piece.role) {
+    case "P":
+      return pawnMoves({ board, square, color });
+    case "K":
+      return kingMoves({ board, square, color });
+    case "Q":
+      return queenMoves({ board, square, color });
+    case "B":
+      return bishopMoves({ board, square, color });
+    case "N":
+      return knightMoves({ board, square, color });
+    case "R":
+      return rookMoves({ board, square, color });
+    default:
+      console.error("Invalid piece to move");
+      return [];
+  }
+}
+
 function findMovesOnDelta({
   board,
   square,
@@ -401,4 +316,98 @@ function findMovesOnDelta({
   }
 
   return moves;
+}
+
+// room for optimization here later
+function isSquareAttacked(
+  board: Board,
+  targetSquare: number,
+  enemy: PieceColor,
+): boolean {
+  for (let sq = 0; sq <= 63; sq++) {
+    let piece = board.pieceAt(sq);
+
+    if (!piece) continue;
+    if (piece.color !== enemy) continue;
+
+    const moves: Move[] = movesFrom({ board, square: sq, color: enemy });
+
+    if (moves.some((m) => m.to === targetSquare)) return true;
+  }
+
+  return false;
+}
+
+function empty(board: Board, targets: number[]): boolean {
+  // For each target, if there is a piece then its not empty
+  for (const target of targets) {
+    if (board.pieceAt(target)) return false;
+  }
+
+  return true;
+}
+
+function notAttacked(
+  board: Board,
+  targets: number[],
+  enemy: PieceColor,
+): boolean {
+  for (const target of targets) {
+    if (isSquareAttacked(board, target, enemy)) return false;
+  }
+
+  return true;
+}
+
+function castlingMoves(board: Board, color: PieceColor): Move[] {
+  let moves: Move[] = [];
+  let enemy: PieceColor = enemyOf(color);
+
+  // Cant castle out of check
+  if (isKingInCheck(board, color)) return [];
+
+  let searchSpace: number[] = [];
+  if (color === "w") {
+    searchSpace = [5, 6];
+    if (
+      board.whiteKingSide &&
+      empty(board, searchSpace) &&
+      notAttacked(board, searchSpace, enemy)
+    ) {
+      moves.push({ from: 4, to: 6 });
+    }
+
+    searchSpace = [1, 2, 3];
+    if (
+      board.whiteQueenSide &&
+      empty(board, searchSpace) &&
+      notAttacked(board, [2, 3], enemy)
+    ) {
+      moves.push({ from: 4, to: 2 });
+    }
+  } else {
+    searchSpace = [61, 62];
+    if (
+      board.blackKingSide &&
+      empty(board, searchSpace) &&
+      notAttacked(board, searchSpace, enemy)
+    ) {
+      moves.push({ from: 60, to: 62 });
+    }
+
+    searchSpace = [58, 59];
+    if (
+      board.blackQueenSide &&
+      empty(board, searchSpace) &&
+      notAttacked(board, searchSpace, enemy)
+    ) {
+      moves.push({ from: 60, to: 58 });
+    }
+  }
+
+  return moves;
+}
+
+function enemyOf(color: PieceColor): PieceColor {
+  return color === "w" ? "b" : "w";
 }
