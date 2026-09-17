@@ -4,13 +4,19 @@ import type {
   MoveContext,
   MoveFinderContext,
   PieceColor,
+  PieceRole,
 } from "../types";
 import { fileOf, rankOf, squareOf } from "../utils";
 import type { Board } from "./board";
 
 export function legalMovesFrom({ board, square, color }: MoveContext): Move[] {
+  console.log("legalMovesFrom pawn:", {
+    square,
+    epTarget: board.enPassantTarget,
+  });
   const piece = board.pieceAt(square);
   const moves = movesFrom({ board, square, color });
+  console.log("  pseudo:", moves);
 
   // Return moves that dont leave king in check
   let legal: Move[] = moves.filter((move) => {
@@ -27,11 +33,42 @@ export function legalMovesFrom({ board, square, color }: MoveContext): Move[] {
   return legal;
 }
 
+function allLegalMoves(board: Board, color: PieceColor): Move[] {
+  let allMoves: Move[] = [];
+  for (let sq = 0; sq <= 63; sq++) {
+    let piece = board.pieceAt(sq);
+
+    if (!piece) continue;
+    if (piece.color !== color) continue;
+
+    const moves: Move[] = legalMovesFrom({ board, square: sq, color });
+    allMoves.push(...moves);
+  }
+
+  return allMoves;
+}
+
 function isKingInCheck(board: Board, color: PieceColor): boolean {
   const kingSquare = board.kingAt(color);
 
   const enemy: PieceColor = enemyOf(color);
   return isSquareAttacked(board, kingSquare, enemy);
+}
+
+export function perft(board: Board, color: PieceColor, depth: number): number {
+  if (depth === 0) return 1;
+
+  let nodes = 0;
+  const moves = allLegalMoves(board, color);
+  const enemy: PieceColor = color === "w" ? "b" : "w";
+
+  for (const move of moves) {
+    const next = board.clone();
+    next.makeMove(move); // pass the Move object
+    nodes += perft(next, enemy, depth - 1); // recurse, other color
+  }
+
+  return nodes;
 }
 
 function enemyOf(color: PieceColor): PieceColor {
@@ -105,6 +142,7 @@ function pawnMoves({ board, square, color }: MoveContext): Move[] {
   let moves: Move[] = [];
   const multplier = color === "w" ? 1 : -1;
   const startRank = color === "w" ? 1 : 6;
+  const lastRank = color === "w" ? 7 : 0;
 
   const r = rankOf(square);
   const f = fileOf(square);
@@ -116,7 +154,7 @@ function pawnMoves({ board, square, color }: MoveContext): Move[] {
   if (r === startRank) {
     // Are both squares empty in front?
     const secondTarget = squareOf(r + 2 * multplier, f);
-    const secondOccupant = board.pieceAt(target);
+    const secondOccupant = board.pieceAt(secondTarget);
     if (!occupant && !secondOccupant) {
       // Add 2 up as a valid move
       moves.push({ from: square, to: secondTarget });
@@ -124,7 +162,17 @@ function pawnMoves({ board, square, color }: MoveContext): Move[] {
   }
 
   // Check if we can move one up
-  if (!occupant) moves.push({ from: square, to: target });
+  if (!occupant) {
+    // Check for promos (add the 4 moves R N B Q)
+    if (rankOf(target) === lastRank) {
+      for (const role of ["Q", "R", "B", "N"] as PieceRole[]) {
+        moves.push({ from: square, to: target, promotion: role });
+      }
+    } else {
+      // else just add the single move
+      moves.push({ from: square, to: target });
+    }
+  }
 
   // Can capture anything?
   for (const df of [-1, 1]) {
@@ -143,11 +191,15 @@ function pawnMoves({ board, square, color }: MoveContext): Move[] {
       captureTarget === board.enPassantTarget ||
       (occupied && occupied.color !== color)
     ) {
-      moves.push({ from: square, to: captureTarget });
+      // Check if capture ends in promotion
+      if (rankOf(captureTarget) === lastRank) {
+        for (const role of ["Q", "R", "B", "N"] as PieceRole[])
+          moves.push({ from: square, to: captureTarget, promotion: role });
+      } else {
+        moves.push({ from: square, to: captureTarget });
+      }
     }
   }
-
-  // Promotion?
 
   return moves;
 }

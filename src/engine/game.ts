@@ -10,7 +10,7 @@ export class Game {
     this.board = new Board(fen);
   }
 
-  move({ from, to }: Move): void {
+  move({ from, to, promotion }: Move): void {
     // Find legal moves and see if to is included
     console.log("Game.move from/to:", from, to);
     const moves = legalMovesFrom({
@@ -18,12 +18,18 @@ export class Game {
       square: from,
       color: this.toMove,
     });
+    console.log("MOVE attempt:", { from, to, promotion, toMove: this.toMove });
 
-    console.log(`legal moves: ${moves}`);
-    if (!moves.some((m) => m.from === from && m.to === to)) return;
+    console.log("  legal:", moves);
+
+    const match = moves.some(
+      (m) => m.from === from && m.to === to && m.promotion === promotion,
+    );
+    console.log("  matched?", match);
+    if (!match) return;
 
     // Make and update turn
-    this.board.makeMove({ from, to });
+    this.board.makeMove({ from, to, promotion });
     this.toMove = this.toMove === "w" ? "b" : "w";
   }
 

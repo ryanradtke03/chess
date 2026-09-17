@@ -172,7 +172,7 @@ export class Board {
     }
   }
 
-  makeMove({ from, to }: Move): void {
+  makeMove({ from, to, promotion }: Move): void {
     console.log(`Moving from: (${from}) to: (${to})`);
 
     const keys: BBKey[] = [
@@ -256,6 +256,15 @@ export class Board {
         this[key] |= toMask; // set destination bit
         break;
       }
+    }
+
+    // Check for promotion
+    if (promotion && piece) {
+      const pawnKey: BBKey = piece.color === "w" ? "WP" : "BP";
+      const promoKey = ((piece.color === "w" ? "W" : "B") + promotion) as BBKey;
+
+      this[pawnKey] &= ~toMask; // remove pawn
+      this[promoKey] |= toMask; // add Q/R/B/N
     }
   }
 
