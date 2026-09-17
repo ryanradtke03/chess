@@ -4,7 +4,7 @@ import { Game } from "./engine/game";
 import { FENS } from "./fens";
 
 function App() {
-  const [game, setGame] = useState(() => new Game(FENS[8]));
+  const [game, setGame] = useState(() => new Game(FENS[7]));
   const [selected, setSelected] = useState<number | null>(null);
 
   function squareToBit(i: number): number {
@@ -18,7 +18,7 @@ function App() {
     } else {
       setGame((prev) => {
         const next = prev.clone();
-        next.move(squareToBit(selected), squareToBit(i));
+        next.move({ from: squareToBit(selected), to: squareToBit(i) });
         return next;
       });
       setSelected(null);

@@ -1,6 +1,6 @@
 // engine/board.ts
 
-import type { BBKey, PieceColor, PieceProps, U64 } from "../types";
+import type { BBKey, Move, PieceColor, PieceProps, U64 } from "../types";
 import { rankOf } from "../utils";
 
 export class Board {
@@ -172,7 +172,7 @@ export class Board {
     }
   }
 
-  makeMove(from: number, to: number): void {
+  makeMove({ from, to }: Move): void {
     console.log(`Moving from: (${from}) to: (${to})`);
 
     const keys: BBKey[] = [
@@ -225,7 +225,6 @@ export class Board {
 
     // Check if castle is being executed
     // Only need to move rook at king move will be executed in the 'normal' section
-
     if (isKing && Math.abs(to - from) === 2) {
       const CASTLE_ROOK: Record<number, [number, number]> = {
         2: [0, 3], // white queenside: a1 → d1

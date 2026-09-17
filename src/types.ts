@@ -19,6 +19,12 @@ export interface BoardProps {
   selected?: number | null;
 }
 
+export interface Move {
+  from: number;
+  to: number;
+  promotion?: PieceRole;
+}
+
 export type U64 = bigint;
 export type BBKey =
   | "WP"
