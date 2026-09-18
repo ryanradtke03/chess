@@ -6,7 +6,7 @@ import type {
   PieceColor,
   PieceRole,
 } from "../types";
-import { fileOf, rankOf, squareOf } from "../utils/utils";
+import { enemyOf, fileOf, rankOf, squareOf } from "../utils/utils";
 import type { Board } from "./board";
 
 // deltas ----------------
@@ -406,8 +406,4 @@ function castlingMoves(board: Board, color: PieceColor): Move[] {
   }
 
   return moves;
-}
-
-function enemyOf(color: PieceColor): PieceColor {
-  return color === "w" ? "b" : "w";
 }

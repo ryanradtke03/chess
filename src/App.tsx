@@ -4,6 +4,7 @@ import PromotionDialog from "./components/PromotionDialog";
 import type { Board as ChessBoard } from "./engine/board";
 import { Game } from "./engine/game";
 import * as movegen from "./engine/movegen";
+import { search } from "./engine/search";
 import type { Move, PieceColor, PieceRole } from "./types";
 import { squareToBit } from "./utils/utils";
 
@@ -37,7 +38,8 @@ function App() {
     if (game.toMove !== "b") return;
 
     const id = setTimeout(() => {
-      const move = pickRandomMove(game.board, "b");
+      //const move = pickRandomMove(game.board, "b");
+      const move = search(game.board, "b", 4);
       if (move) {
         // make the move
         setGame((prev) => {
