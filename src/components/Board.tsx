@@ -22,7 +22,13 @@ function Board({
       }
     >
       {squares.map((piece, i) => {
-        const isLight = (Math.floor(i / 8) + (i % 8)) % 2 === 0;
+        const file = i % 8;
+        const rank = Math.floor(i / 8);
+
+        const showFile = rank === 7; // bottom row gets a-h
+        const showRank = file === 0; // left column gets 8-1
+
+        const isLight = (rank + file) % 2 === 0;
         return (
           <div
             key={i}
@@ -30,8 +36,29 @@ function Board({
             className={`relative aspect-square ${isLight ? "bg-[var(--light-sq)]" : "bg-[var(--dark-sq)]"} ${i === selected ? "ring-4 ring-yellow-400 ring-inset" : ""}`}
           >
             {piece && <Piece color={piece.color} role={piece.role} />}
+
             {targets.includes(i) && (
               <span className="pointer-events-none absolute inset-0 m-auto h-1/3 w-1/3 rounded-full bg-black/30" />
+            )}
+
+            {showRank && (
+              <span
+                className={`pointer-events-none absolute left-0.5 top-0.5 select-none text-[10px] font-semibold ${
+                  isLight ? "text-[var(--dark-sq)]" : "text-[var(--light-sq)]"
+                }`}
+              >
+                {8 - rank}
+              </span>
+            )}
+
+            {showFile && (
+              <span
+                className={`pointer-events-none absolute bottom-0.5 right-0.5 select-none text-[10px] font-semibold ${
+                  isLight ? "text-[var(--dark-sq)]" : "text-[var(--light-sq)]"
+                }`}
+              >
+                {"abcdefgh"[file]}
+              </span>
             )}
           </div>
         );
